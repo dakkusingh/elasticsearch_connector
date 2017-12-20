@@ -13,6 +13,7 @@ use Drupal\search_api\Query\ConditionGroupInterface;
 use Drupal\search_api\Query\QueryInterface;
 use Elasticsearch\Common\Exceptions\ElasticsearchException;
 use Drupal\elasticsearch_connector\Event\PrepareSearchQueryEvent;
+use Drupal\elasticsearch_connector\Event\BuildSearchParamsEvent;
 
 /**
  * Class SearchBuilder.
@@ -106,6 +107,13 @@ class SearchBuilder {
     $params['body'] = $this->body;
     // Preserve the options for further manipulation if necessary.
     $this->query->setOption('ElasticParams', $params);
+
+    // Allow other modules to alter index config before we create it.
+    $indexName = IndexFactory::getIndexName($this->index);
+    $dispatcher = \Drupal::service('event_dispatcher');
+    $buildSearchParamsEvent = new BuildSearchParamsEvent($params, $indexName);
+    $event = $dispatcher->dispatch(BuildSearchParamsEvent::BUILD_QUERY, $buildSearchParamsEvent);
+    $params = $event->getElasticSearchParams();
 
     return $params;
   }
