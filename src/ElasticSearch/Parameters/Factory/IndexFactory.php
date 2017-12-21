@@ -4,6 +4,7 @@ namespace Drupal\elasticsearch_connector\ElasticSearch\Parameters\Factory;
 
 use Drupal\search_api\IndexInterface;
 use Drupal\elasticsearch_connector\Event\PrepareIndexEvent;
+use Drupal\elasticsearch_connector\Event\PrepareIndexMappingEvent;
 
 /**
  * Class IndexFactory.
@@ -160,6 +161,12 @@ class IndexFactory {
     }
 
     $params['body'][$params['type']]['properties'] = $properties;
+
+    // Allow other modules to alter index config before we create it.
+    $dispatcher = \Drupal::service('event_dispatcher');
+    $prepareIndexMappingEvent = new PrepareIndexMappingEvent($params, $params['index']);
+    $event = $dispatcher->dispatch(PrepareIndexMappingEvent::PREPARE_INDEX_MAPPING, $prepareIndexMappingEvent);
+    $params = $event->getIndexMappingParams();
 
     return $params;
   }
